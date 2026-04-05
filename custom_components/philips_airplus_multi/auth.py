@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 import base64
 import hashlib
 import json
 import logging
 import re
 import secrets
-import ssl
-import time
 import urllib.parse
-import urllib.request
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional, Callable, Awaitable
 
@@ -63,7 +59,7 @@ class PhilipsAirplusOAuth2Implementation:
             .rstrip("=")
         )
 
-        self.hass.data.setdefault("philips_airplus", {})[f"flow_{flow_id}"] = {
+        self.hass.data.setdefault("philips_airplus_multi", {})[f"flow_{flow_id}"] = {
             "code_verifier": code_verifier
         }
 
@@ -88,7 +84,7 @@ class PhilipsAirplusOAuth2Implementation:
         return f"{self.authorize_url}?{qs}"
 
     async def async_request_token(self, code: str, flow_id: str) -> dict:
-        flow_data = self.hass.data.get("philips_airplus", {}).get(f"flow_{flow_id}", {})
+        flow_data = self.hass.data.get("philips_airplus_multi", {}).get(f"flow_{flow_id}", {})
         code_verifier = flow_data.get("code_verifier")
         if not code_verifier:
             raise RuntimeError("Code verifier not found for flow")
