@@ -11,6 +11,7 @@ This is a fork of [ShorMeneses/philips-airplus-homeassistant](https://github.com
 - **Filter Monitoring**: Filter replacement and cleaning life (percentage + remaining hours)
 - **Maintenance Resets**: Reset filter timers via buttons or HA services
 - **Real-time Updates**: Live status updates via MQTT subscription
+- **Reconnect Resilience**: Automatic reconnect with exponential backoff (30 s → 5 min) and token refresh before re-connecting
 - **Air Quality Sensors**: PM2.5 concentration and allergen index (AC0651/10)
 - **Standby Monitor**: Toggle sensor standby mode (AC0651/10)
 
