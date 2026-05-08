@@ -25,6 +25,11 @@ ALL_SWITCH_DESCRIPTIONS: dict[str, SwitchEntityDescription] = {
         entity_category=EntityCategory.CONFIG,
         icon="mdi:eye-check-outline",
     ),
+    "light": SwitchEntityDescription(
+        key="light",
+        translation_key="light",
+        icon="mdi:lightbulb",
+    ),
 }
 
 
@@ -104,6 +109,30 @@ class PhilipsAirplusSwitch(CoordinatorEntity, SwitchEntity):
         """Return True if entity is available."""
         return self.coordinator.is_connected
 
+    def _get_on_off_values(self) -> tuple[int, int]:
+        """Get configured on/off values for this switch key.
+
+        Uses model-config keys '<switch>_on_value' and '<switch>_off_value'
+        and falls back to 1/0 when omitted.
+        """
+        props = self.coordinator._model_config.get("properties", {})
+        on_key = f"{self.entity_description.key}_on_value"
+        off_key = f"{self.entity_description.key}_off_value"
+
+        on_value = props.get(on_key, 1)
+        off_value = props.get(off_key, 0)
+
+        try:
+            return int(on_value), int(off_value)
+        except (TypeError, ValueError):
+            _LOGGER.warning(
+                "Invalid on/off config for switch '%s' (on=%s, off=%s), falling back to 1/0",
+                self.entity_description.key,
+                on_value,
+                off_value,
+            )
+            return 1, 0
+
     @property
     def is_on(self) -> bool | None:
         """Return True if the switch is on."""
@@ -116,15 +145,22 @@ class PhilipsAirplusSwitch(CoordinatorEntity, SwitchEntity):
         value = device_state.get(raw_id)
         if value is None:
             return None
+        on_value, off_value = self._get_on_off_values()
+        if value == on_value:
+            return True
+        if value == off_value:
+            return False
         return bool(value)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on."""
-        await self.coordinator.set_property(self.entity_description.key, 1)
+        on_value, _ = self._get_on_off_values()
+        await self.coordinator.set_property(self.entity_description.key, on_value)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off."""
-        await self.coordinator.set_property(self.entity_description.key, 0)
+        _, off_value = self._get_on_off_values()
+        await self.coordinator.set_property(self.entity_description.key, off_value)
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""

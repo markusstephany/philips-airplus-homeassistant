@@ -91,6 +91,9 @@
     "switch": {
       "standby_monitor": {
         "name": "Sensor Standby Monitor"
+      },
+      "light": {
+        "name": "Light"
       }
     }
   }
