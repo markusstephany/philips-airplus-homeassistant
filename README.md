@@ -12,15 +12,17 @@ This is a fork of [ShorMeneses/philips-airplus-homeassistant](https://github.com
 - **Maintenance Resets**: Reset filter timers via buttons or HA services
 - **Real-time Updates**: Live status updates via MQTT subscription
 - **Reconnect Resilience**: Automatic reconnect with exponential backoff (30 s → 5 min) and token refresh before re-connecting
-- **Air Quality Sensors**: PM2.5 concentration and allergen index (AC0651/10)
+- **Air Quality Sensors**: PM2.5 concentration and allergen index (AC0651/10, AC1715/11)
 - **Standby Monitor**: Toggle sensor standby mode (AC0651/10)
+- **Light Control**: Toggle the device LED (AC1715/11)
 
 ## Supported Devices
 
-| Model | Modes | Fan Level | Filter Monitoring | Air Quality | Standby Monitor |
-|-------|-------|-----------|-------------------|-------------|-----------------|
-| AC0650/10 | Auto, Sleep, Turbo | ✅ | ✅ | ✅ PM2.5 | — |
-| AC0651/10 | Auto, Medium, Sleep, Turbo | ✅ | ✅ | ✅ PM2.5, Allergen Index | ✅ |
+| Model | Modes | Fan Level | Filter Monitoring | Air Quality | Standby Monitor | Light |
+|-------|-------|-----------|-------------------|-------------|-----------------|-------|
+| AC0650/10 | Auto, Sleep, Turbo | ✅ | ✅ | ✅ PM2.5 | — | — |
+| AC0651/10 | Auto, Medium, Sleep, Turbo | ✅ | ✅ | ✅ PM2.5, Allergen Index | ✅ | — |
+| AC1715/11 | Auto, Sleep, Medium, High, Turbo | — | ✅ (filter reset unmapped) | ✅ PM2.5, Allergen Index | — | ✅ |
 
 Other Air+ models sharing the same MQTT protocol may work but are untested. New models can be added via `models.yaml` without code changes.
 
@@ -79,6 +81,7 @@ Entities are registered lazily: the integration waits for the device to report i
 ## Limitations
 
 - Actively tested with AC0651/10; AC0650/10 configuration is carried over from the original fork and untested on real hardware
+- AC1715/11 contributed by @jjohnsen; filter reset write keys/values are not yet mapped, so the maintenance reset buttons are not exposed for this model
 - Requires internet connectivity (cloud-dependent)
 
 ## Adding a New Model
@@ -97,6 +100,12 @@ Contributions welcome — especially tested `models.yaml` entries for additional
 2. Create a feature branch
 3. Make your changes
 4. Submit a pull request
+
+### Contributors
+
+- [@markusstephany](https://github.com/markusstephany) — multi-model architecture, AC0651/10 support
+- [@jjohnsen](https://github.com/jjohnsen) — AC1715/11 model, light switch support, generic on/off value mapping
+- [@ShorMeneses](https://github.com/ShorMeneses) — original integration this fork is based on
 
 ## Development
 
