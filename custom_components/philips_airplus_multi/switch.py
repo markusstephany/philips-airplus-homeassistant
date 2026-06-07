@@ -107,7 +107,7 @@ class PhilipsAirplusSwitch(CoordinatorEntity, SwitchEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.is_connected
+        return self.coordinator.is_connected and not self.coordinator.is_status_stale
 
     def _get_on_off_values(self) -> tuple[int, int]:
         """Get configured on/off values for this switch key.

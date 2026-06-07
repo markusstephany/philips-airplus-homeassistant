@@ -94,7 +94,7 @@ class PhilipsAirplusFan(CoordinatorEntity, FanEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.is_connected
+        return self.coordinator.is_connected and not self.coordinator.is_status_stale
 
     @property
     def is_on(self) -> bool:

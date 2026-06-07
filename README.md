@@ -12,6 +12,7 @@ This is a fork of [ShorMeneses/philips-airplus-homeassistant](https://github.com
 - **Maintenance Resets**: Reset filter timers via buttons or HA services
 - **Real-time Updates**: Live status updates via MQTT subscription
 - **Reconnect Resilience**: Automatic reconnect with exponential backoff (30 s → 5 min) and token refresh before re-connecting
+- **Health Watchdog**: If the device stops reporting status for 30 min while the MQTT link is still up (a hung device session — commands still work but no updates arrive), entities go *unavailable* and a repair issue is raised telling you to power-cycle the purifier. Clears automatically once the device reports again.
 - **Air Quality Sensors**: PM2.5 concentration and allergen index (AC0651/10, AC1715/11)
 - **Standby Monitor**: Toggle sensor standby mode (AC0651/10)
 - **Light Control**: Toggle the device LED (AC1715/11)

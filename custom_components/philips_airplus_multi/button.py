@@ -108,7 +108,7 @@ class PhilipsAirplusButton(CoordinatorEntity, ButtonEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.is_connected
+        return self.coordinator.is_connected and not self.coordinator.is_status_stale
 
     async def async_press(self) -> None:
         """Handle button press."""

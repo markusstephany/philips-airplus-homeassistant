@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import PhilipsAirplusAPIClient, build_client_id
@@ -35,6 +36,7 @@ from .const import (
     PROP_MODE,
     PROP_PM25,
     SCAN_INTERVAL,
+    STATUS_STALE_THRESHOLD,
     TOKEN_REFRESH_BUFFER,
 )
 from .mqtt_client import PhilipsAirplusMQTTClient
@@ -113,6 +115,12 @@ class PhilipsAirplusDataCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._last_update: Optional[datetime] = None
         self._last_full_request: Optional[datetime] = None
         self._reconnect_task: Optional[asyncio.Task] = None
+        # Timestamp of the last real status push (updatePort). Used to detect a
+        # hung device whose MQTT link still accepts commands but no longer
+        # reports status. Seeded on connect so a device that never reports is
+        # also caught.
+        self._last_status_update: Optional[datetime] = None
+        self._unresponsive_issue_active = False
 
     async def _on_token_refresh(self, token_data: Dict[str, Any]) -> None:
         """Handle token refresh events."""
@@ -157,6 +165,20 @@ class PhilipsAirplusDataCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         return self._connected
 
     @property
+    def is_status_stale(self) -> bool:
+        """Return True if no real status push arrived within the stale window.
+
+        The MQTT link can stay up (commands still go through) while the device's
+        status reporting hangs. In that case the link looks connected but no
+        updatePort events arrive. _last_status_update is seeded on connect and
+        refreshed on every status push, so a large gap means the device is
+        unresponsive.
+        """
+        if self._last_status_update is None:
+            return False
+        return datetime.now() - self._last_status_update > STATUS_STALE_THRESHOLD
+
+    @property
     def device_state(self) -> Dict[str, Any]:
         """Get device state."""
         return self._device_state
@@ -169,6 +191,14 @@ class PhilipsAirplusDataCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
     async def _async_setup(self) -> None:
         """Set up the coordinator."""
         try:
+            # Clear any stale "unresponsive" issue left over from a previous
+            # session — after a fresh start the link is rebuilt and the watchdog
+            # state is rebuilt from scratch, so a leftover issue is outdated.
+            ir.async_delete_issue(
+                self.hass, DOMAIN, f"device_unresponsive_{self._device_uuid}"
+            )
+            self._unresponsive_issue_active = False
+
             # Load models asynchronously (fixes blocking I/O warning)
             await self._model_manager.async_load_models()
 
@@ -277,6 +307,9 @@ class PhilipsAirplusDataCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
         self._connected = connected
         if connected:
             _LOGGER.info("Connected to Philips Air+ device %s", self._device_name)
+            # Seed the status watchdog so the stale window starts at (re)connect,
+            # not at the last push before the disconnect.
+            self._last_status_update = datetime.now()
             if self._reconnect_task and not self._reconnect_task.done():
                 self._reconnect_task.cancel()
                 self._reconnect_task = None
@@ -402,6 +435,14 @@ class PhilipsAirplusDataCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
     def _process_status_update(self, properties: Dict[str, Any]) -> None:
         """Process status update."""
+        # Mark that a real status push arrived — feeds the unresponsive watchdog.
+        self._last_status_update = datetime.now()
+        # A real push means we've recovered. Clear any active unresponsive issue
+        # here, because async_set_updated_data() keeps resetting the poll timer
+        # while pushes flow, so _async_update_data (the other watchdog hook) is
+        # effectively suppressed and would never clear the issue on its own.
+        if self._unresponsive_issue_active:
+            self._evaluate_unresponsive_issue()
         self._device_state.update(properties)
 
         # Log important changes
@@ -540,8 +581,44 @@ class PhilipsAirplusDataCoordinator(DataUpdateCoordinator[Dict[str, Any]]):
 
         return filter_info if filter_info else None
 
+    def _evaluate_unresponsive_issue(self) -> None:
+        """Raise or clear a repair issue based on status freshness.
+
+        Catches the case where the MQTT link stays up but the device stops
+        reporting status (hung NCP session) — see is_status_stale.
+        """
+        issue_id = f"device_unresponsive_{self._device_uuid}"
+        stale = self.is_status_stale
+        if stale and not self._unresponsive_issue_active:
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                issue_id,
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="device_unresponsive",
+                translation_placeholders={"name": self._device_name},
+            )
+            self._unresponsive_issue_active = True
+            _LOGGER.warning(
+                "Device %s unresponsive: no status update for over %s "
+                "(link still up). Power-cycle the device to recover.",
+                self._device_name,
+                STATUS_STALE_THRESHOLD,
+            )
+        elif not stale and self._unresponsive_issue_active:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            self._unresponsive_issue_active = False
+            _LOGGER.info(
+                "Device %s is reporting status again; cleared unresponsive issue",
+                self._device_name,
+            )
+
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update device data."""
+        # Watchdog: flag/clear the unresponsive repair issue every poll cycle.
+        self._evaluate_unresponsive_issue()
+
         if not self._mqtt_client or not self._mqtt_client.is_connected():
             raise UpdateFailed("MQTT client not connected")
 

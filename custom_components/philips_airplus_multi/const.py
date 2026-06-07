@@ -79,3 +79,9 @@ CONF_ENABLE_MQTT = "enable_mqtt"
 SCAN_INTERVAL = timedelta(seconds=120)
 TOKEN_REFRESH_BUFFER = timedelta(minutes=15)
 
+# Mark the device as unresponsive if no real status push (updatePort) arrives
+# within this window. The device normally pushes status every few seconds, so a
+# long gap indicates a hung NCP/cloud session (entities go unavailable + repair
+# issue is raised).
+STATUS_STALE_THRESHOLD = timedelta(minutes=30)
+

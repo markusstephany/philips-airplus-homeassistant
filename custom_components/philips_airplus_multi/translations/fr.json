@@ -96,5 +96,11 @@
         "name": "Lumière"
       }
     }
+  },
+  "issues": {
+    "device_unresponsive": {
+      "title": "Le purificateur ne répond plus",
+      "description": "{name} ne transmet plus de données d'état, bien que la connexion MQTT soit toujours active et que les commandes puissent encore fonctionner. Il s'agit généralement d'une session bloquée dans l'appareil. Débranchez le purificateur (~30 s) puis rebranchez-le pour rétablir les mises à jour d'état."
+    }
   }
 }

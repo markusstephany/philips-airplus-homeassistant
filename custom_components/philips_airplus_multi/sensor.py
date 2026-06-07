@@ -164,7 +164,7 @@ class PhilipsAirplusSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.is_connected
+        return self.coordinator.is_connected and not self.coordinator.is_status_stale
 
     @property
     def native_value(self) -> Optional[str | int | float]:

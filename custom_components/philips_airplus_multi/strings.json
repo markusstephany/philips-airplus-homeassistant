@@ -96,5 +96,11 @@
         "name": "Light"
       }
     }
+  },
+  "issues": {
+    "device_unresponsive": {
+      "title": "Air purifier not responding",
+      "description": "{name} has stopped reporting status, although the MQTT connection is still up and commands may still work. This is usually a hung session inside the device. Power-cycle the purifier (unplug for ~30s, then plug it back in) to restore status updates."
+    }
   }
 }

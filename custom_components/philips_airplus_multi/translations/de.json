@@ -96,5 +96,11 @@
         "name": "Licht"
       }
     }
+  },
+  "issues": {
+    "device_unresponsive": {
+      "title": "Luftreiniger antwortet nicht",
+      "description": "{name} sendet keine Statusdaten mehr, obwohl die MQTT-Verbindung noch besteht und Befehle ggf. weiter funktionieren. Meist hängt die Session im Gerät. Trenne den Luftreiniger ~30 s vom Strom und stecke ihn wieder ein, um die Statusübertragung wiederherzustellen."
+    }
   }
 }
