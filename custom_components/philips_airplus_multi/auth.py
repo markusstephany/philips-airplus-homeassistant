@@ -18,6 +18,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     AUTH_MODE_OAUTH,
+    DOMAIN,
     HTTP_USER_AGENT,
     OIDC_DEFAULT_ISSUER_BASE,
     OIDC_DEFAULT_REDIRECT_URI,
@@ -59,7 +60,7 @@ class PhilipsAirplusOAuth2Implementation:
             .rstrip("=")
         )
 
-        self.hass.data.setdefault("philips_airplus_multi", {})[f"flow_{flow_id}"] = {
+        self.hass.data.setdefault(DOMAIN, {})[f"flow_{flow_id}"] = {
             "code_verifier": code_verifier
         }
 
@@ -84,7 +85,7 @@ class PhilipsAirplusOAuth2Implementation:
         return f"{self.authorize_url}?{qs}"
 
     async def async_request_token(self, code: str, flow_id: str) -> dict:
-        flow_data = self.hass.data.get("philips_airplus_multi", {}).get(f"flow_{flow_id}", {})
+        flow_data = self.hass.data.get(DOMAIN, {}).get(f"flow_{flow_id}", {})
         code_verifier = flow_data.get("code_verifier")
         if not code_verifier:
             raise RuntimeError("Code verifier not found for flow")
